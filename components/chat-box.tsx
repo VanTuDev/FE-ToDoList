@@ -38,7 +38,10 @@ export function ChatBox() {
         { id: `a-${Date.now()}`, role: "assistant", text: reply },
       ])
     } catch (e) {
-      const msg = e instanceof Error ? e.message : "Không gửi được. Kiểm tra NEXT_PUBLIC_GEMINI_API_KEY trong .env."
+      const msg =
+        e instanceof Error
+          ? e.message
+          : "Không gửi được. Kiểm tra cấu hình GEMINI_API_KEY trên môi trường deploy."
       toast.error(msg)
       setMessages((prev) => [
         ...prev,

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'fpt-unitracker-v1'
+const CACHE_NAME = 'fpt-unitracker-v2'
 const urlsToCache = [
   '/',
   '/manifest.json',
@@ -23,6 +23,14 @@ self.addEventListener('activate', (event) => {
 })
 
 self.addEventListener('fetch', (event) => {
+  // Không cache API / request có side-effects
+  const req = event.request
+  const url = new URL(req.url)
+  if (req.method !== 'GET' || url.pathname.startsWith('/api/')) {
+    event.respondWith(fetch(req))
+    return
+  }
+
   event.respondWith(
     caches.match(event.request).then((response) => {
       if (response) return response
