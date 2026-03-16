@@ -1,0 +1,26 @@
+{
+  "name": "FPT UniTracker",
+  "short_name": "UniTracker",
+  "description": "He thong quan ly hoc tap thong minh danh cho sinh vien FPT University",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#13141f",
+  "theme_color": "#f97316",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["education", "productivity"],
+  "lang": "vi"
+}
