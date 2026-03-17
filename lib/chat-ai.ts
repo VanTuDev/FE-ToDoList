@@ -1,10 +1,4 @@
-/**
- * Client helper: gọi API route /api/chat (server-side) để lấy phản hồi Gemini.
- */
 
-/**
- * Gửi tin nhắn và lấy phản hồi từ Gemini.
- */
 export async function getGeminiReply(
   messages: Array<{ role: "user" | "assistant"; text: string }>,
   userMessage: string
