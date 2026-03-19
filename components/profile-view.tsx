@@ -154,7 +154,7 @@ export function ProfileView() {
   }
 
   const getSubject = (id: string) => subjects.find((s) => s.id === id)
-  const displayName = accountInfo?.isGoogleUser ? accountInfo.name : (formProfile.name || profile.name)
+  const displayName = formProfile.name || accountInfo?.name || profile.name
 
   return (
     <div className="flex flex-col gap-5 lg:gap-6 pb-6">
@@ -258,16 +258,13 @@ export function ProfileView() {
             {/* Họ và tên */}
             <FormField
               id="name" label="Họ và tên" icon={User} required
-              locked={accountInfo?.isGoogleUser}
             >
               <Input
                 id="name"
                 placeholder="Nguyễn Văn A"
                 value={formProfile.name}
-                onChange={(e) => !accountInfo?.isGoogleUser && setFormProfile((p) => ({ ...p, name: e.target.value }))}
-                readOnly={accountInfo?.isGoogleUser}
-                className={cn("bg-secondary border-border transition-colors",
-                  accountInfo?.isGoogleUser && "text-muted-foreground cursor-default opacity-80")}
+                onChange={(e) => setFormProfile((p) => ({ ...p, name: e.target.value }))}
+                className="bg-secondary border-border"
               />
             </FormField>
 
