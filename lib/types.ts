@@ -9,6 +9,7 @@ export interface UserProfile {
   age: number
   studentId: string
   email: string
+  avatar?: string
   major: string
   semester: string
   campus: string

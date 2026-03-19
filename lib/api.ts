@@ -157,6 +157,31 @@ export function login(phone: string, password: string): Promise<AuthResponse> {
   });
 }
 
+// ========== Auth – Google user info & setup ==========
+
+export type UserInfoResponse = {
+  phone: string | null;
+  email: string;
+  name: string;
+  avatar: string;
+  isGoogleUser: boolean;
+  hasPhone: boolean;
+  hasPassword: boolean;
+};
+
+/** GET thông tin tài khoản hiện tại (phone, email, avatar, isGoogleUser...) */
+export function getUserInfo(): Promise<UserInfoResponse> {
+  return request<UserInfoResponse>("/api/auth/user-info");
+}
+
+/** PATCH thiết lập phone + password cho Google user */
+export function setupAccount(phone: string, password: string): Promise<{ success: boolean; message: string }> {
+  return request<{ success: boolean; message: string }>("/api/auth/setup-account", {
+    method: "PATCH",
+    body: JSON.stringify({ phone, password }),
+  });
+}
+
 // ========== Profile – CRUD ==========
 
 export function getProfile(): Promise<UserProfile> {

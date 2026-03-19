@@ -4,7 +4,7 @@ import { useState, useRef, useEffect, useCallback } from "react"
 import { toast } from "sonner"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import { MessageCircle, X, Loader2, GripHorizontal, Bot, Send } from "lucide-react"
+import { X, Loader2, GripHorizontal, Bot, Send } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { getGeminiReply } from "@/lib/chat-ai"
 

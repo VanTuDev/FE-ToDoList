@@ -16,8 +16,9 @@ import {
   ListTodo,
   LogOut,
 } from "lucide-react"
+import Image from "next/image"
 import { cn } from "@/lib/utils"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { AppProvider, useApp } from "@/lib/app-context"
 import { getStoredToken } from "@/lib/api"
@@ -116,15 +117,29 @@ function AppShell({ children }: { children: React.ReactNode }) {
         <div className="p-4 border-t border-border">
           <Link
             href="/profile"
-            className="flex items-center gap-3 w-full hover:bg-primary/15 rounded-lg p-1.5 -m-1.5 transition-colors"
+            className="group flex items-center gap-3 w-full hover:bg-primary/10 rounded-xl p-2 -m-2 transition-all duration-200"
           >
-            <Avatar className="h-9 w-9">
-              <AvatarFallback className="bg-primary/20 text-primary text-xs font-semibold">
-                {getInitials(profile.name)}
-              </AvatarFallback>
-            </Avatar>
+            <div className="relative shrink-0">
+              {profile.avatar ? (
+                <Image
+                  src={profile.avatar}
+                  alt={profile.name || "avatar"}
+                  width={36}
+                  height={36}
+                  className="rounded-xl object-cover ring-2 ring-transparent group-hover:ring-primary/30 transition-all"
+                  unoptimized
+                />
+              ) : (
+                <Avatar className="h-9 w-9 rounded-xl">
+                  <AvatarFallback className="rounded-xl bg-primary/20 text-primary text-xs font-bold">
+                    {getInitials(profile.name)}
+                  </AvatarFallback>
+                </Avatar>
+              )}
+              <span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-green-500 ring-2 ring-card" />
+            </div>
             <div className="flex-1 min-w-0 text-left">
-              <p className="text-sm font-medium text-foreground truncate">
+              <p className="text-sm font-semibold text-foreground truncate group-hover:text-primary transition-colors">
                 {profile.name || "Chưa cập nhật"}
               </p>
               <p className="text-xs text-muted-foreground truncate">
@@ -175,11 +190,22 @@ function AppShell({ children }: { children: React.ReactNode }) {
               <span className="hidden sm:inline">Đăng xuất</span>
             </Button>
             <Link href="/profile" className="lg:hidden">
-              <Avatar className="h-8 w-8">
-                <AvatarFallback className="bg-primary/20 text-primary text-xs font-semibold">
-                  {getInitials(profile.name)}
-                </AvatarFallback>
-              </Avatar>
+              {profile.avatar ? (
+                <Image
+                  src={profile.avatar}
+                  alt={profile.name || "avatar"}
+                  width={32}
+                  height={32}
+                  className="rounded-xl object-cover ring-2 ring-primary/20"
+                  unoptimized
+                />
+              ) : (
+                <Avatar className="h-8 w-8 rounded-xl">
+                  <AvatarFallback className="rounded-xl bg-primary/20 text-primary text-xs font-bold">
+                    {getInitials(profile.name)}
+                  </AvatarFallback>
+                </Avatar>
+              )}
             </Link>
           </div>
         </header>
