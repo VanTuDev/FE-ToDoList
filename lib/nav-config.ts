@@ -5,6 +5,7 @@ import {
   BarChart3,
   Settings,
   ListTodo,
+  Users,
   type LucideIcon,
 } from "lucide-react"
 
@@ -16,6 +17,7 @@ export const navItems: { id: string; label: string; icon: LucideIcon }[] = [
   { id: "timetable", label: "Thời khóa biểu", icon: CalendarDays },
   { id: "progress", label: "Tiến độ", icon: ListChecks },
   { id: "statistics", label: "Thống kê", icon: BarChart3 },
+  { id: "community", label: "Cộng đồng", icon: Users },
   { id: "profile", label: "Cá nhân", icon: Settings },
 ]
 

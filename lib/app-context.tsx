@@ -221,6 +221,15 @@ export function AppProvider({ children, onUnauthorized }: AppProviderProps) {
     pendingProfileRef.current = state.profile;
   }, [state.profile]);
 
+  // Dùng ref để giữ callback onUnauthorized mới nhất mà không cần
+  // thêm nó vào dependency array của useCallback/useEffect.
+  // Điều này ngăn `refresh` bị tạo lại mỗi khi AppLayout re-render
+  // (vì AppLayout truyền () => router.replace("/login") mỗi lần).
+  const onUnauthorizedRef = useRef(onUnauthorized);
+  useEffect(() => {
+    onUnauthorizedRef.current = onUnauthorized;
+  }, [onUnauthorized]);
+
   const scheduleProfileSave = useCallback(() => {
     if (profileSaveTimerRef.current) clearTimeout(profileSaveTimerRef.current);
     profileSaveTimerRef.current = setTimeout(() => {
@@ -237,24 +246,57 @@ export function AppProvider({ children, onUnauthorized }: AppProviderProps) {
       const data = await api.getState();
       dispatch({ type: "SET_STATE", payload: data });
     } catch (e) {
+      if (e instanceof ApiError && e.status === 401) {
+        clearAuthStorage();
+        onUnauthorizedRef.current?.();
+        return;
+      }
       const message =
-        e instanceof ApiError && e.status === 401
-          ? "Phiên đăng nhập hết hạn hoặc token không hợp lệ. Vui lòng đăng xuất và đăng nhập lại."
-          : e instanceof Error ? e.message : "Không kết nối được server";
+        e instanceof Error ? e.message : "Không kết nối được server";
       setError(message);
     } finally {
       setLoading(false);
     }
-  }, [onUnauthorized]);
+  }, []); // deps rỗng – dùng ref để đọc onUnauthorized mới nhất
 
+  // Load dữ liệu lần đầu khi mount.
+  // Dùng AbortController để hủy request ở cấp network khi React
+  // Strict Mode unmount component (cleanup). Nhờ đó lần double-invoke
+  // thứ 1 bị hủy, chỉ lần 2 thực sự chạy → tránh double-redirect/clear.
   useEffect(() => {
-    refresh();
-  }, [refresh]);
+    const controller = new AbortController();
+
+    const load = async () => {
+      try {
+        setError(null);
+        setLoading(true);
+        const data = await api.getState(controller.signal);
+        dispatch({ type: "SET_STATE", payload: data });
+      } catch (e) {
+        // Bỏ qua nếu request bị huỷ chủ động (Strict Mode cleanup)
+        if (controller.signal.aborted) return;
+        if (e instanceof ApiError && e.status === 401) {
+          clearAuthStorage();
+          onUnauthorizedRef.current?.();
+          return;
+        }
+        const message =
+          e instanceof Error ? e.message : "Không kết nối được server";
+        setError(message);
+      } finally {
+        if (!controller.signal.aborted) setLoading(false);
+      }
+    };
+
+    load();
+    // Cleanup: huỷ fetch đang chờ → Strict Mode double-invoke an toàn
+    return () => controller.abort();
+  }, []);
 
   const logout = useCallback(() => {
     clearAuthStorage();
-    onUnauthorized?.();
-  }, [onUnauthorized]);
+    onUnauthorizedRef.current?.();
+  }, []);
 
   const getSubject = (id: string) => state.subjects.find((s) => s.id === id);
 

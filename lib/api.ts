@@ -130,9 +130,11 @@ async function request<T>(
 
 // ========== Data (full state) ==========
 
-/** GET toàn bộ state – dùng khi load app hoặc refresh */
-export function getState(): Promise<AppState> {
-  return request<AppState>("/api/data/state");
+/** GET toàn bộ state – dùng khi load app hoặc refresh.
+ *  Nhận optional AbortSignal để hủy request khi component unmount
+ *  (cần thiết để React Strict Mode không gọi handler 2 lần). */
+export function getState(signal?: AbortSignal): Promise<AppState> {
+  return request<AppState>("/api/data/state", { signal });
 }
 
 // ========== Auth – đăng ký / đăng nhập ==========

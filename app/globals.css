@@ -95,4 +95,88 @@
   body {
     @apply bg-background text-foreground;
   }
+
+  /* Smooth scrollbar */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: oklch(0.35 0.008 260); border-radius: 99px; }
+  ::-webkit-scrollbar-thumb:hover { background: oklch(0.45 0.008 260); }
+}
+
+/* ─── Custom animations ──────────────────────────────────────────────────── */
+@keyframes fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slide-in-right {
+  from { opacity: 0; transform: translateX(32px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes scale-in {
+  from { opacity: 0; transform: scale(0.94); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 0 0 oklch(0.65 0.20 50 / 0.5),
+                0 8px 32px oklch(0.65 0.20 50 / 0.3);
+  }
+  50% {
+    box-shadow: 0 0 0 8px oklch(0.65 0.20 50 / 0),
+                0 8px 32px oklch(0.65 0.20 50 / 0.5);
+  }
+}
+
+@keyframes shimmer {
+  0%   { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+
+@layer utilities {
+  .animate-fade-in       { animation: fade-in 0.3s ease both; }
+  .animate-slide-up      { animation: slide-up 0.35s ease both; }
+  .animate-slide-in-right { animation: slide-in-right 0.3s ease both; }
+  .animate-scale-in      { animation: scale-in 0.25s ease both; }
+  .animate-pulse-glow    { animation: pulse-glow 2.5s ease-in-out infinite; }
+
+  /* Glassmorphism card */
+  .glass {
+    background: oklch(0.17 0.005 260 / 0.7);
+    backdrop-filter: blur(12px);
+    border: 1px solid oklch(0.35 0.008 260 / 0.5);
+  }
+
+  /* Gradient border */
+  .border-gradient {
+    position: relative;
+  }
+  .border-gradient::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1px;
+    background: linear-gradient(135deg, oklch(0.75 0.18 55), oklch(0.65 0.20 280));
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+  }
+
+  /* Hover lift effect */
+  .hover-lift {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+  .hover-lift:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px oklch(0 0 0 / 0.3);
+  }
 }

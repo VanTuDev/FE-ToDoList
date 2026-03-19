@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import {
@@ -307,6 +307,13 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener("focus", sync)
   }, [mounted])
 
+  // Phải khai báo tất cả hooks TRƯỚC mọi early return (Rules of Hooks).
+  // useCallback giữ reference ổn định, tránh AppProvider/refresh bị
+  // re-render không cần thiết mỗi khi AppLayout re-render.
+  const handleUnauthorized = useCallback(() => {
+    router.replace("/login")
+  }, [router])
+
   if (!mounted) {
     return (
       <div className="flex h-dvh items-center justify-center bg-background" suppressHydrationWarning>
@@ -325,7 +332,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <AppProvider onUnauthorized={() => router.replace("/login")}>
+    <AppProvider onUnauthorized={handleUnauthorized}>
       <AppShell>{children}</AppShell>
     </AppProvider>
   )
