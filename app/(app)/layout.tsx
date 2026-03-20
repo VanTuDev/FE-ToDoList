@@ -349,6 +349,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener("focus", sync)
   }, [mounted])
 
+  // Redirect sau khi đã hydrate xong để tránh hydration mismatch khi gọi router trong render.
+  useEffect(() => {
+    if (!mounted) return
+    if (!auth) router.replace("/login")
+  }, [mounted, auth, router])
+
   // Phải khai báo tất cả hooks TRƯỚC mọi early return (Rules of Hooks).
   // useCallback giữ reference ổn định, tránh AppProvider/refresh bị
   // re-render không cần thiết mỗi khi AppLayout re-render.
@@ -365,7 +371,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   }
 
   if (!auth) {
-    router.replace("/login")
     return (
       <div className="flex h-dvh items-center justify-center bg-background" suppressHydrationWarning>
         <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />

@@ -4,7 +4,6 @@ import { useState, useRef, useEffect, useCallback } from "react"
 import { toast } from "sonner"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
-import { X, Loader2, GripHorizontal, Bot, Send } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { getGeminiReply } from "@/lib/chat-ai"
 
@@ -154,17 +153,19 @@ export function ChatBox() {
             onTouchStart={onTouchStart}
           >
             <div className="flex items-center gap-2">
-              <Bot className="h-4 w-4 text-white" />
+                <span className="flex h-4 w-4 items-center justify-center rounded bg-white/15 text-white text-[10px] font-bold">
+                  AI
+                </span>
               <span className="text-sm font-semibold text-white">Chat AI</span>
             </div>
             <div className="flex items-center gap-1">
-              <GripHorizontal className="h-4 w-4 text-white/60" />
+                <span className="text-white/70 text-base leading-none select-none">≡</span>
               <button
                 className="text-white/80 hover:text-white transition-colors ml-1"
                 onClick={() => setOpen(false)}
                 aria-label="Đóng"
               >
-                <X className="h-4 w-4" />
+                  <span className="text-base leading-none">×</span>
               </button>
             </div>
           </div>
@@ -177,7 +178,7 @@ export function ChatBox() {
             {messages.length === 0 && (
               <div className="flex flex-col items-center justify-center h-full gap-2 text-center">
                 <div className="h-12 w-12 rounded-full bg-orange-500/10 flex items-center justify-center">
-                  <Bot className="h-6 w-6 text-orange-500" />
+                    <span className="text-orange-500 text-xs font-bold">AI</span>
                 </div>
                 <p className="text-xs text-muted-foreground">
                   Xin chào! Tôi là trợ lý AI.<br />Hãy đặt câu hỏi để bắt đầu.
@@ -199,7 +200,7 @@ export function ChatBox() {
             ))}
             {loading && (
               <div className="mr-auto rounded-2xl rounded-bl-sm px-3 py-2 bg-secondary text-foreground inline-flex items-center gap-1.5 text-sm">
-                <Loader2 className="h-3.5 w-3.5 animate-spin text-orange-500" />
+                <span className="h-3.5 w-3.5 rounded-full border-2 border-orange-500 border-t-transparent animate-spin" />
                 Đang trả lời...
               </div>
             )}
@@ -220,7 +221,7 @@ export function ChatBox() {
               disabled={!input.trim() || loading}
               className="bg-orange-500 hover:bg-orange-400 text-white border-0 gap-1"
             >
-              <Send className="h-3.5 w-3.5" />
+              <span className="text-xs font-bold">→</span>
             </Button>
           </div>
         </div>
@@ -247,8 +248,8 @@ export function ChatBox() {
         )}
       >
         {open
-          ? <X className="h-6 w-6" />
-          : <Bot className="h-6 w-6" />
+          ? <span className="text-xl leading-none">×</span>
+          : <span className="text-[12px] font-bold">AI</span>
         }
       </button>
     </>

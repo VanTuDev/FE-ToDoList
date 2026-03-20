@@ -476,8 +476,8 @@ export function ProfileView() {
         </CardContent>
       </Card>
 
-      {/* ── Thời khóa biểu ──────────────────────────────────────────────── */}
-      <Card className="bg-card border-border">
+      {/* ── Thời khóa biểu (ẩn theo yêu cầu) ─────────────────────────────── */}
+      <Card className="bg-card border-border hidden">
         <CardHeader className="pb-3 flex flex-row items-center justify-between gap-2">
           <CardTitle className="flex items-center gap-2 text-sm font-semibold text-foreground">
             <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10">
