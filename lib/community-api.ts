@@ -32,6 +32,8 @@ export type CommunityUser = {
   major: string;
   studentId: string;
   avatar: string;
+  phoneId?: string;
+  googleId?: string;
 };
 
 export type FriendRequest = {

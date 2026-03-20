@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef, useCallback } from "react"
+import { useState, useEffect, useRef, useCallback, useMemo } from "react"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -19,6 +19,7 @@ import {
   Heart, MessageSquare, Send, UserPlus, UserCheck, Users,
   Newspaper, X, Trash2, Check, Clock, ChevronLeft,
   Loader2, Sparkles, GraduationCap, Hash, Layers,
+  BookOpen, Target, Flame,
 } from "lucide-react"
 import * as api from "@/lib/community-api"
 import type { CommunityPost, CommunityUser, FriendUser, FriendRequest, ChatMessage } from "@/lib/community-api"
@@ -96,6 +97,10 @@ export default function CommunityPage() {
   const [usersLoading, setUsersLoading] = useState(false)
   const [sentRequests, setSentRequests] = useState<Set<string>>(new Set())
   const [peopleModalUser, setPeopleModalUser] = useState<CommunityUser | null>(null)
+  const [friendIdSet, setFriendIdSet] = useState<Set<string>>(new Set())
+  const [hintCards, setHintCards] = useState<
+    Array<{ title: string; text: string; icon: any }>
+  >([])
 
   // Friends
   const [friends,          setFriends]         = useState<FriendUser[]>([])
@@ -117,6 +122,46 @@ export default function CommunityPage() {
     if (tab === "friends") loadFriends()
   }, [tab])
 
+  const hintPool = useMemo(() => ([
+    {
+      title: "Mỗi ngày 1 bước",
+      text: "Hãy bắt đầu từ việc nhỏ. Làm xong một phần sẽ tạo đà cho cả ngày.",
+      icon: <Sparkles className="h-4 w-4 text-primary" />,
+    },
+    {
+      title: "Checklist trước khi bắt đầu",
+      text: "Viết ra 3 việc quan trọng nhất. Khi hoàn thành, tick vào để tăng động lực.",
+      icon: <Target className="h-4 w-4 text-primary" />,
+    },
+    {
+      title: "Ôn tập theo vòng lặp",
+      text: "Chia nội dung thành phiên ngắn và lặp lại. Bạn sẽ nhớ lâu hơn.",
+      icon: <BookOpen className="h-4 w-4 text-primary" />,
+    },
+    {
+      title: "Đừng trì hoãn",
+      text: "Nếu còn 10 phút, hãy mở tài liệu ngay. Bắt đầu sớm hơn thì dễ thành công hơn.",
+      icon: <Flame className="h-4 w-4 text-primary" />,
+    },
+    {
+      title: "Tập trung 25 phút",
+      text: "Hẹn giờ Pomodoro. Tập trung một lần, kết thúc một lần.",
+      icon: <Clock className="h-4 w-4 text-primary" />,
+    },
+  ]), [])
+
+  useEffect(() => {
+    // Random hint mỗi lần vào trang
+    const pool = [...hintPool]
+    for (let i = pool.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1))
+      const tmp = pool[i]
+      pool[i] = pool[j]
+      pool[j] = tmp
+    }
+    setHintCards(pool.slice(0, 3))
+  }, [hintPool])
+
   const loadPosts = async () => {
     setPostLoading(true)
     try { setPosts(await api.getPosts()) } catch {} finally { setPostLoading(false) }
@@ -124,8 +169,15 @@ export default function CommunityPage() {
   const loadUsers = async () => {
     setUsersLoading(true)
     try {
-      const [d, r] = await Promise.all([api.getCommunityUsers(), api.getFriendRequests()])
-      setUsers(d); setSentRequests(new Set(r.sent.map((x) => x.toUserId)))
+      const [d, r, f] = await Promise.all([
+        api.getCommunityUsers(),
+        api.getFriendRequests(),
+        api.getFriends(),
+      ])
+      setUsers(d)
+      setSentRequests(new Set(r.sent.map((x) => x.toUserId)))
+      setFriends(f)
+      setFriendIdSet(new Set(f.map((x) => x.userId)))
     } catch {} finally { setUsersLoading(false) }
   }
   const loadFriends = async () => {
@@ -266,6 +318,33 @@ export default function CommunityPage() {
         ))}
       </div>
 
+      {/* Gợi ý học tập (luôn hiển thị bên phải, không nằm trong tab Mọi người) */}
+      <aside className="hidden xl:block fixed right-6 top-24 w-80">
+        <div className="sticky top-6 space-y-3">
+          <div className="rounded-2xl glass border-border p-4 orange-glow-border animate-gradient-x">
+            <div className="flex items-center gap-2 mb-2">
+              <Sparkles className="h-4 w-4 text-primary" />
+              <p className="text-sm font-semibold text-foreground">Gợi ý học tập</p>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Mỗi lần vào trang, bạn sẽ nhận một hint ngẫu nhiên.
+            </p>
+          </div>
+          {hintCards.map((c) => (
+            <div
+              key={c.title}
+              className="rounded-2xl glass border-border p-4 hover:border-primary/30 transition-all duration-200"
+            >
+              <div className="flex items-center gap-2 mb-2">
+                {c.icon}
+                <p className="text-sm font-semibold text-foreground">{c.title}</p>
+              </div>
+              <p className="text-xs text-muted-foreground leading-relaxed">{c.text}</p>
+            </div>
+          ))}
+        </div>
+      </aside>
+
       {/* ══ FEED ══ */}
       {tab === "feed" && (
         <div className="space-y-4 animate-slide-up">
@@ -321,10 +400,17 @@ export default function CommunityPage() {
 
       {/* ══ PEOPLE ══ */}
       {tab === "people" && (
-        <div className="space-y-2.5 animate-slide-up">
+        <div className="flex gap-6 items-start">
+          <div className="flex-1 space-y-2.5 animate-slide-up">
           {usersLoading ? (
             <div className="flex justify-center py-16"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
-          ) : users.length === 0 ? (
+          ) : users.filter((u) => {
+            const isFriend =
+              friendIdSet.has(u.userId) ||
+              (!!u.phoneId && friendIdSet.has(u.phoneId)) ||
+              (!!u.googleId && friendIdSet.has(u.googleId))
+            return !isFriend
+          }).length === 0 ? (
             <div className="flex flex-col items-center gap-3 py-16">
               <div className="h-14 w-14 rounded-2xl bg-secondary flex items-center justify-center">
                 <Users className="h-6 w-6 text-muted-foreground/50" />
@@ -332,7 +418,15 @@ export default function CommunityPage() {
               <p className="text-sm text-muted-foreground">Chưa có người dùng nào khác.</p>
             </div>
           ) : (
-            users.map((user) => {
+            users
+              .filter((u) => {
+                const isFriend =
+                  friendIdSet.has(u.userId) ||
+                  (!!u.phoneId && friendIdSet.has(u.phoneId)) ||
+                  (!!u.googleId && friendIdSet.has(u.googleId))
+                return !isFriend
+              })
+              .map((user) => {
               const name = displayLabel(user.displayName, user.userId)
               return (
                 <div key={user.userId}
@@ -379,6 +473,8 @@ export default function CommunityPage() {
               )
             })
           )}
+          </div>
+
         </div>
       )}
 

@@ -486,12 +486,8 @@ export function ProfileView() {
             Thời khóa biểu
             <Badge variant="secondary" className="text-xs ml-0.5">{timetable.length} tiết</Badge>
           </CardTitle>
+          {/* Ẩn chức năng thêm thời khóa biểu theo yêu cầu */}
           <Dialog open={timetableDialogOpen} onOpenChange={setTimetableDialogOpen}>
-            <DialogTrigger asChild>
-              <Button size="sm" className="gap-1.5 h-8 px-3 text-xs" disabled={subjects.length === 0}>
-                <Plus className="h-3.5 w-3.5" /> Thêm lịch
-              </Button>
-            </DialogTrigger>
             <DialogContent className="bg-card border-border max-w-sm">
               <DialogHeader>
                 <DialogTitle className="text-foreground flex items-center gap-2">
