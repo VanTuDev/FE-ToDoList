@@ -22,6 +22,24 @@ const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? "";
 
 const AUTH_TOKEN_KEY = "unitracker_token";
 const AUTH_USER_ID_KEY = "unitracker_userId";
+/** Hiển thị tạm trên navbar ngay sau OAuth (trước khi GET /api/data/state trả profile đầy đủ) */
+const SESSION_DISPLAY_NAME_KEY = "unitracker_sessionDisplayName";
+const SESSION_AVATAR_KEY = "unitracker_sessionAvatar";
+
+export function setSessionUserDisplay(name: string, avatar: string): void {
+  if (typeof window === "undefined") return;
+  if (name?.trim()) localStorage.setItem(SESSION_DISPLAY_NAME_KEY, name.trim());
+  if (avatar?.trim()) localStorage.setItem(SESSION_AVATAR_KEY, avatar.trim());
+}
+
+/** Merge hiển thị navbar: ưu tiên profile từ API, fallback cache phiên đăng nhập */
+export function getNavbarDisplayFromStorage(): { name: string; avatar: string } {
+  if (typeof window === "undefined") return { name: "", avatar: "" };
+  return {
+    name: localStorage.getItem(SESSION_DISPLAY_NAME_KEY) ?? "",
+    avatar: localStorage.getItem(SESSION_AVATAR_KEY) ?? "",
+  };
+}
 
 /** Lấy token đã lưu (client-only) */
 export function getStoredToken(): string | null {
@@ -41,6 +59,8 @@ export function clearAuthStorage(): void {
   if (typeof window === "undefined") return;
   localStorage.removeItem(AUTH_TOKEN_KEY);
   localStorage.removeItem(AUTH_USER_ID_KEY);
+  localStorage.removeItem(SESSION_DISPLAY_NAME_KEY);
+  localStorage.removeItem(SESSION_AVATAR_KEY);
   sessionStorage.clear();
   // Xóa toàn bộ cookie (phạm vi path hiện tại)
   const cookies = document.cookie.split(";");

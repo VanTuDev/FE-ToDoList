@@ -23,7 +23,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { GraduationCap } from "lucide-react";
-import { login, register, setAuthStorage, ApiError } from "@/lib/api";
+import { login, register, setAuthStorage, getUserInfo, setSessionUserDisplay, ApiError } from "@/lib/api";
 
 type Tab = "login" | "register";
 
@@ -68,8 +68,13 @@ export function AuthView({ onSuccess }: Props) {
     try {
       const res = await login(loginPhone.trim(), loginPassword.trim());
       setAuthStorage(res.token, res.userId);
+      try {
+        const info = await getUserInfo();
+        if (info.name?.trim() || info.avatar?.trim()) {
+          setSessionUserDisplay(info.name ?? "", info.avatar ?? "");
+        }
+      } catch { /* ignore */ }
       setSuccessMsg("Đăng nhập thành công!");
-      // Delay nhỏ để user thấy toast success
       setTimeout(() => onSuccess(), 300);
     } catch (err) {
       if (err instanceof ApiError) {
@@ -108,6 +113,12 @@ export function AuthView({ onSuccess }: Props) {
     try {
       const res = await register(regPhone.trim(), regPassword);
       setAuthStorage(res.token, res.userId);
+      try {
+        const info = await getUserInfo();
+        if (info.name?.trim() || info.avatar?.trim()) {
+          setSessionUserDisplay(info.name ?? "", info.avatar ?? "");
+        }
+      } catch { /* ignore */ }
       setSuccessMsg("Đăng ký thành công! Chào mừng bạn.");
       setTimeout(() => onSuccess(), 300);
     } catch (err) {

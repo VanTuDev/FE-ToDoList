@@ -1,6 +1,6 @@
 import {
   LayoutDashboard,
-  CalendarDays,
+  TrendingUp,
   Settings,
   ListTodo,
   Users,
@@ -12,7 +12,7 @@ export const VIEW_STORAGE_KEY = "unitracker_activeView"
 export const navItems: { id: string; label: string; icon: LucideIcon }[] = [
   { id: "dashboard", label: "Tổng quan", icon: LayoutDashboard },
   { id: "tasks", label: "Việc cần làm", icon: ListTodo },
-  { id: "timetable", label: "Thời khóa biểu", icon: CalendarDays },
+  { id: "progress", label: "Tiến độ", icon: TrendingUp },
   { id: "community", label: "Cộng đồng", icon: Users },
   { id: "profile", label: "Cá nhân", icon: Settings },
 ]

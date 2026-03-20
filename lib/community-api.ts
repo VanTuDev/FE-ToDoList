@@ -30,6 +30,8 @@ export type CommunityUser = {
   displayName: string;
   class: string;
   major: string;
+  studentId: string;
+  avatar: string;
 };
 
 export type FriendRequest = {
@@ -42,6 +44,7 @@ export type FriendRequest = {
 export type FriendUser = {
   userId: string;
   displayName: string;
+  avatar: string;
 };
 
 export type ChatMessage = {

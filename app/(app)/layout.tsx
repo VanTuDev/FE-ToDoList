@@ -21,7 +21,7 @@ import { cn } from "@/lib/utils"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { AppProvider, useApp } from "@/lib/app-context"
-import { getStoredToken } from "@/lib/api"
+import { getStoredToken, getNavbarDisplayFromStorage } from "@/lib/api"
 import { navItems, VIEW_STORAGE_KEY } from "@/lib/nav-config"
 import { ChatBox } from "@/components/chat-box"
 
@@ -47,6 +47,11 @@ function AppShell({ children }: { children: React.ReactNode }) {
   }
 
   const currentLabel = navItems.find((n) => pathname?.startsWith(`/${n.id}`))?.label ?? "Tổng quan"
+
+  // Tên + ảnh từ profile API; fallback cache phiên (sau Google OAuth / getUserInfo)
+  const sessionNav = getNavbarDisplayFromStorage()
+  const navName = profile.name?.trim() || sessionNav.name || ""
+  const navAvatar = profile.avatar?.trim() || sessionNav.avatar || ""
 
   if (loading) {
     return (
@@ -140,7 +145,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
             </div>
             <div className="flex-1 min-w-0 text-left">
               <p className="text-sm font-semibold text-foreground truncate group-hover:text-primary transition-colors">
-                {profile.name || "Chưa cập nhật"}
+                {navName || "Chưa cập nhật"}
               </p>
               <p className="text-xs text-muted-foreground truncate">
                 {profile.class || "Bấm để cập nhật"}
@@ -190,10 +195,10 @@ function AppShell({ children }: { children: React.ReactNode }) {
               <span className="hidden sm:inline">Đăng xuất</span>
             </Button>
             <Link href="/profile" className="lg:hidden">
-              {profile.avatar ? (
+              {navAvatar ? (
                 <Image
-                  src={profile.avatar}
-                  alt={profile.name || "avatar"}
+                  src={navAvatar}
+                  alt={navName || "avatar"}
                   width={32}
                   height={32}
                   className="rounded-xl object-cover ring-2 ring-primary/20"
@@ -202,7 +207,7 @@ function AppShell({ children }: { children: React.ReactNode }) {
               ) : (
                 <Avatar className="h-8 w-8 rounded-xl">
                   <AvatarFallback className="rounded-xl bg-primary/20 text-primary text-xs font-bold">
-                    {getInitials(profile.name)}
+                    {getInitials(navName)}
                   </AvatarFallback>
                 </Avatar>
               )}
@@ -286,14 +291,25 @@ function AppShell({ children }: { children: React.ReactNode }) {
                 onClick={() => setMobileNavOpen(false)}
                 className="flex items-center gap-3 w-full"
               >
-                <Avatar className="h-9 w-9">
-                  <AvatarFallback className="bg-primary/20 text-primary text-xs font-semibold">
-                    {getInitials(profile.name)}
-                  </AvatarFallback>
-                </Avatar>
+                {navAvatar ? (
+                  <Image
+                    src={navAvatar}
+                    alt={navName || "avatar"}
+                    width={36}
+                    height={36}
+                    className="rounded-xl object-cover"
+                    unoptimized
+                  />
+                ) : (
+                  <Avatar className="h-9 w-9 rounded-xl">
+                    <AvatarFallback className="rounded-xl bg-primary/20 text-primary text-xs font-semibold">
+                      {getInitials(navName)}
+                    </AvatarFallback>
+                  </Avatar>
+                )}
                 <div className="text-left">
                   <p className="text-sm font-medium text-foreground">
-                    {profile.name || "Chưa cập nhật"}
+                    {navName || "Chưa cập nhật"}
                   </p>
                   <p className="text-xs text-muted-foreground">
                     {profile.class || "Bấm để cập nhật"}{" "}

@@ -1,43 +1,74 @@
 "use client"
 
 import { useState, useEffect, useRef, useCallback } from "react"
+import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { cn } from "@/lib/utils"
 import { useApp } from "@/lib/app-context"
 import {
   Heart, MessageSquare, Send, UserPlus, UserCheck, Users,
   Newspaper, X, Trash2, Check, Clock, ChevronLeft,
-  Loader2, Sparkles, MessageCircleMore,
+  Loader2, Sparkles, GraduationCap, Hash, Layers,
 } from "lucide-react"
 import * as api from "@/lib/community-api"
 import type { CommunityPost, CommunityUser, FriendUser, FriendRequest, ChatMessage } from "@/lib/community-api"
 
 type Tab = "feed" | "people" | "friends"
 
-// ─── Avatar helper ────────────────────────────────────────────────────────────
+// ─── Avatar ───────────────────────────────────────────────────────────────────
 const AVATAR_COLORS = [
   "from-orange-500 to-amber-400",
   "from-violet-500 to-purple-400",
   "from-blue-500 to-cyan-400",
   "from-green-500 to-emerald-400",
   "from-pink-500 to-rose-400",
+  "from-sky-500 to-indigo-400",
 ]
-function getAvatarColor(name: string) {
-  const idx = (name.charCodeAt(0) || 0) % AVATAR_COLORS.length
-  return AVATAR_COLORS[idx]
+function gradientFor(seed: string) {
+  return AVATAR_COLORS[(seed.charCodeAt(0) || 0) % AVATAR_COLORS.length]
 }
-function UserAvatar({ name, size = "md" }: { name: string; size?: "sm" | "md" | "lg" }) {
-  const sz = { sm: "h-7 w-7 text-[10px]", md: "h-9 w-9 text-sm", lg: "h-11 w-11 text-base" }[size]
+
+function UserAvatar({
+  name, avatar, size = "md",
+}: { name: string; avatar?: string; size?: "sm" | "md" | "lg" }) {
+  const sizeClass = { sm: "h-7 w-7 text-[10px]", md: "h-9 w-9 text-sm", lg: "h-11 w-11 text-base" }[size]
+  const label = name?.trim() ? name.slice(0, 1).toUpperCase() : "?"
+
+  if (avatar) {
+    return (
+      <Image
+        src={avatar}
+        alt={name || "avatar"}
+        width={size === "lg" ? 44 : size === "md" ? 36 : 28}
+        height={size === "lg" ? 44 : size === "md" ? 36 : 28}
+        unoptimized
+        className={cn("rounded-full object-cover shrink-0", sizeClass)}
+      />
+    )
+  }
   return (
     <div className={cn(
       "shrink-0 rounded-full bg-linear-to-br flex items-center justify-center font-bold text-white shadow-sm",
-      sz, getAvatarColor(name)
+      sizeClass, gradientFor(name || "?")
     )}>
-      {name.slice(0, 1).toUpperCase()}
+      {label}
     </div>
   )
+}
+
+// ─── Display name helper ──────────────────────────────────────────────────────
+function displayLabel(name: string, userId: string) {
+  return name?.trim() || `Người dùng ${userId.slice(-4)}`
 }
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
@@ -46,35 +77,39 @@ export default function CommunityPage() {
   const [myId, setMyId] = useState("")
   useEffect(() => { setMyId(localStorage.getItem("unitracker_userId") ?? "") }, [])
 
-  const myDisplayName = state.profile?.name || `Người dùng ${myId.slice(-4)}`
+  const myName        = state.profile?.name || ""
+  const myAvatar      = state.profile?.avatar || ""
+  const myDisplayName = myName || `Người dùng ${myId.slice(-4)}`
+
   const [tab, setTab] = useState<Tab>("feed")
 
   // Feed
-  const [posts,          setPosts]          = useState<CommunityPost[]>([])
-  const [postLoading,    setPostLoading]    = useState(false)
-  const [newContent,     setNewContent]     = useState("")
-  const [posting,        setPosting]        = useState(false)
-  const [commentInputs,  setCommentInputs]  = useState<Record<string, string>>({})
-  const [openComments,   setOpenComments]   = useState<Record<string, boolean>>({})
+  const [posts,         setPosts]         = useState<CommunityPost[]>([])
+  const [postLoading,   setPostLoading]   = useState(false)
+  const [newContent,    setNewContent]    = useState("")
+  const [posting,       setPosting]       = useState(false)
+  const [commentInputs, setCommentInputs] = useState<Record<string, string>>({})
+  const [openComments,  setOpenComments]  = useState<Record<string, boolean>>({})
 
   // People
-  const [users,         setUsers]         = useState<CommunityUser[]>([])
-  const [usersLoading,  setUsersLoading]  = useState(false)
-  const [sentRequests,  setSentRequests]  = useState<Set<string>>(new Set())
+  const [users,        setUsers]        = useState<CommunityUser[]>([])
+  const [usersLoading, setUsersLoading] = useState(false)
+  const [sentRequests, setSentRequests] = useState<Set<string>>(new Set())
+  const [peopleModalUser, setPeopleModalUser] = useState<CommunityUser | null>(null)
 
   // Friends
-  const [friends,         setFriends]         = useState<FriendUser[]>([])
-  const [friendsLoading,  setFriendsLoading]  = useState(false)
-  const [pendingRequests, setPendingRequests] = useState<FriendRequest[]>([])
+  const [friends,          setFriends]         = useState<FriendUser[]>([])
+  const [friendsLoading,   setFriendsLoading]  = useState(false)
+  const [pendingRequests,  setPendingRequests] = useState<FriendRequest[]>([])
 
   // Chat
-  const [activeChat,   setActiveChat]   = useState<FriendUser | null>(null)
-  const [messages,     setMessages]     = useState<ChatMessage[]>([])
-  const [chatInput,    setChatInput]    = useState("")
-  const [chatSending,  setChatSending]  = useState(false)
-  const lastMsgRef  = useRef("")
-  const chatEndRef  = useRef<HTMLDivElement>(null)
-  const pollRef     = useRef<NodeJS.Timeout | null>(null)
+  const [activeChat,  setActiveChat]  = useState<FriendUser | null>(null)
+  const [messages,    setMessages]    = useState<ChatMessage[]>([])
+  const [chatInput,   setChatInput]   = useState("")
+  const [chatSending, setChatSending] = useState(false)
+  const lastMsgRef = useRef("")
+  const chatEndRef = useRef<HTMLDivElement>(null)
+  const pollRef    = useRef<NodeJS.Timeout | null>(null)
 
   useEffect(() => {
     if (tab === "feed")    loadPosts()
@@ -82,9 +117,24 @@ export default function CommunityPage() {
     if (tab === "friends") loadFriends()
   }, [tab])
 
-  const loadPosts   = async () => { setPostLoading(true);   try { setPosts(await api.getPosts()) }              catch {} finally { setPostLoading(false) } }
-  const loadUsers   = async () => { setUsersLoading(true);  try { const [d, r] = await Promise.all([api.getCommunityUsers(), api.getFriendRequests()]); setUsers(d); setSentRequests(new Set(r.sent.map((x) => x.toUserId))) } catch {} finally { setUsersLoading(false) } }
-  const loadFriends = async () => { setFriendsLoading(true); try { const [f, r] = await Promise.all([api.getFriends(), api.getFriendRequests()]); setFriends(f); setPendingRequests(r.received) } catch {} finally { setFriendsLoading(false) } }
+  const loadPosts = async () => {
+    setPostLoading(true)
+    try { setPosts(await api.getPosts()) } catch {} finally { setPostLoading(false) }
+  }
+  const loadUsers = async () => {
+    setUsersLoading(true)
+    try {
+      const [d, r] = await Promise.all([api.getCommunityUsers(), api.getFriendRequests()])
+      setUsers(d); setSentRequests(new Set(r.sent.map((x) => x.toUserId)))
+    } catch {} finally { setUsersLoading(false) }
+  }
+  const loadFriends = async () => {
+    setFriendsLoading(true)
+    try {
+      const [f, r] = await Promise.all([api.getFriends(), api.getFriendRequests()])
+      setFriends(f); setPendingRequests(r.received)
+    } catch {} finally { setFriendsLoading(false) }
+  }
 
   const handlePost = async () => {
     if (!newContent.trim() || posting) return
@@ -108,8 +158,7 @@ export default function CommunityPage() {
   }
 
   const handleComment = async (postId: string) => {
-    const content = commentInputs[postId]?.trim()
-    if (!content) return
+    const content = commentInputs[postId]?.trim(); if (!content) return
     try {
       const comment = await api.addComment(postId, content, myDisplayName)
       setPosts((prev) => prev.map((p) => p._id === postId ? { ...p, comments: [...p.comments, comment] } : p))
@@ -177,7 +226,7 @@ export default function CommunityPage() {
   }
 
   const tabs = [
-    { key: "feed"    as Tab, label: "Bảng tin", icon: <Newspaper className="h-3.5 w-3.5" /> },
+    { key: "feed"    as Tab, label: "Bảng tin",  icon: <Newspaper className="h-3.5 w-3.5" /> },
     { key: "people"  as Tab, label: "Mọi người", icon: <Users className="h-3.5 w-3.5" /> },
     { key: "friends" as Tab, label: "Bạn bè",    icon: <UserCheck className="h-3.5 w-3.5" /> },
   ]
@@ -185,7 +234,7 @@ export default function CommunityPage() {
   return (
     <div className="mx-auto max-w-2xl pb-6">
 
-      {/* ── Header ─────────────────────────────────────────────────────── */}
+      {/* Header */}
       <div className="mb-6 flex items-center gap-3">
         <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
           <Sparkles className="h-5 w-5 text-primary" />
@@ -196,12 +245,10 @@ export default function CommunityPage() {
         </div>
       </div>
 
-      {/* ── Tabs ───────────────────────────────────────────────────────── */}
+      {/* Tabs */}
       <div className="relative flex gap-1 rounded-xl bg-secondary p-1 mb-6 shadow-inner">
         {tabs.map((t) => (
-          <button
-            key={t.key}
-            onClick={() => setTab(t.key)}
+          <button key={t.key} onClick={() => setTab(t.key)}
             className={cn(
               "relative flex flex-1 items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold transition-all duration-200",
               tab === t.key
@@ -219,13 +266,13 @@ export default function CommunityPage() {
         ))}
       </div>
 
-      {/* ══════════ FEED ══════════ */}
+      {/* ══ FEED ══ */}
       {tab === "feed" && (
         <div className="space-y-4 animate-slide-up">
           {/* Compose */}
           <div className="rounded-2xl border border-border bg-card p-4 space-y-3 hover:border-primary/20 transition-colors">
             <div className="flex items-start gap-3">
-              <UserAvatar name={myDisplayName} />
+              <UserAvatar name={myDisplayName} avatar={myAvatar} />
               <Textarea
                 placeholder={`${myDisplayName}, hôm nay bạn nghĩ gì?`}
                 value={newContent}
@@ -235,19 +282,14 @@ export default function CommunityPage() {
             </div>
             <div className="flex items-center justify-between">
               <span className="text-xs text-muted-foreground">{newContent.length > 0 ? `${newContent.length} ký tự` : ""}</span>
-              <Button
-                size="sm"
-                onClick={handlePost}
-                disabled={!newContent.trim() || posting}
-                className="gap-1.5 hover:scale-105 transition-transform"
-              >
+              <Button size="sm" onClick={handlePost} disabled={!newContent.trim() || posting}
+                className="gap-1.5 hover:scale-105 transition-transform">
                 {posting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
                 Đăng bài
               </Button>
             </div>
           </div>
 
-          {/* Posts */}
           {postLoading ? (
             <div className="flex flex-col items-center gap-3 py-16">
               <Loader2 className="h-7 w-7 animate-spin text-primary" />
@@ -263,8 +305,7 @@ export default function CommunityPage() {
             </div>
           ) : (
             posts.map((post) => (
-              <PostCard
-                key={post._id} post={post} myId={myId}
+              <PostCard key={post._id} post={post} myId={myId}
                 commentInput={commentInputs[post._id] ?? ""}
                 showComments={openComments[post._id] ?? false}
                 onLike={() => handleLike(post._id)}
@@ -278,7 +319,7 @@ export default function CommunityPage() {
         </div>
       )}
 
-      {/* ══════════ PEOPLE ══════════ */}
+      {/* ══ PEOPLE ══ */}
       {tab === "people" && (
         <div className="space-y-2.5 animate-slide-up">
           {usersLoading ? (
@@ -291,40 +332,149 @@ export default function CommunityPage() {
               <p className="text-sm text-muted-foreground">Chưa có người dùng nào khác.</p>
             </div>
           ) : (
-            users.map((user) => (
-              <div key={user.userId}
-                className="group flex items-center gap-3 rounded-2xl border border-border bg-card p-4 hover:border-primary/30 hover:bg-primary/3 transition-all duration-200"
-              >
-                <UserAvatar name={user.displayName} size="lg" />
-                <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-sm text-foreground truncate">{user.displayName}</p>
-                  <p className="text-xs text-muted-foreground truncate">
-                    {[user.major, user.class].filter(Boolean).join(" · ") || "FPT University"}
-                  </p>
-                </div>
-                {sentRequests.has(user.userId) ? (
-                  <div className="flex items-center gap-1.5 rounded-lg bg-secondary px-3 py-1.5 text-xs text-muted-foreground">
-                    <Clock className="h-3 w-3" /> Đã gửi
+            users.map((user) => {
+              const name = displayLabel(user.displayName, user.userId)
+              return (
+                <div key={user.userId}
+                  className="rounded-2xl border border-border bg-card overflow-hidden hover:border-primary/30 transition-all duration-200"
+                >
+                  <div className="flex items-center gap-3 p-4">
+                    <button
+                      type="button"
+                      onClick={() => setPeopleModalUser(user)}
+                      className="flex flex-1 min-w-0 items-center gap-3 text-left rounded-lg -m-1 p-1 hover:bg-secondary/50 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+                    >
+                      <UserAvatar name={name} avatar={user.avatar} size="lg" />
+                      <div className="min-w-0">
+                        <p className="font-semibold text-sm text-foreground truncate">{name}</p>
+                        <p className="text-xs text-muted-foreground truncate mt-0.5">
+                          {user.studentId ? (
+                            <span className="inline-flex items-center gap-1">
+                              <Hash className="h-2.5 w-2.5 shrink-0" />
+                              {user.studentId}
+                            </span>
+                          ) : (
+                            "Ấn để xem hồ sơ · FPT University"
+                          )}
+                        </p>
+                      </div>
+                    </button>
+                    <div className="shrink-0" onClick={(e) => e.stopPropagation()}>
+                      {sentRequests.has(user.userId) ? (
+                        <div className="flex items-center gap-1 rounded-lg bg-secondary px-3 py-1.5 text-xs text-muted-foreground">
+                          <Clock className="h-3 w-3" /> Đã gửi
+                        </div>
+                      ) : (
+                        <Button
+                          size="sm"
+                          onClick={() => handleAddFriend(user.userId)}
+                          className="gap-1.5 hover:scale-105 active:scale-95 transition-transform"
+                        >
+                          <UserPlus className="h-3.5 w-3.5" /> Kết bạn
+                        </Button>
+                      )}
+                    </div>
                   </div>
-                ) : (
-                  <Button
-                    size="sm"
-                    onClick={() => handleAddFriend(user.userId)}
-                    className="gap-1.5 hover:scale-105 active:scale-95 transition-transform"
-                  >
-                    <UserPlus className="h-3.5 w-3.5" /> Kết bạn
-                  </Button>
-                )}
-              </div>
-            ))
+                </div>
+              )
+            })
           )}
         </div>
       )}
 
-      {/* ══════════ FRIENDS ══════════ */}
+      {/* Modal hồ sơ thành viên (Mọi người) */}
+      <Dialog
+        open={peopleModalUser !== null}
+        onOpenChange={(open) => {
+          if (!open) setPeopleModalUser(null)
+        }}
+      >
+        <DialogContent className="sm:max-w-md bg-card border-border gap-0 p-0 overflow-hidden">
+          {peopleModalUser && (
+            <>
+              <div className="bg-linear-to-br from-primary/15 via-primary/5 to-transparent px-6 pt-6 pb-4">
+                <DialogHeader className="gap-1 text-center sm:text-center">
+                  <DialogTitle className="text-base font-semibold text-foreground">
+                    Hồ sơ thành viên
+                  </DialogTitle>
+                  <DialogDescription className="text-xs">
+                    Thông tin công khai để bạn kết nối
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="flex flex-col items-center gap-3 mt-2">
+                  <UserAvatar
+                    name={displayLabel(peopleModalUser.displayName, peopleModalUser.userId)}
+                    avatar={peopleModalUser.avatar}
+                    size="lg"
+                  />
+                  <div className="text-center">
+                    <p className="text-lg font-bold text-foreground">
+                      {displayLabel(peopleModalUser.displayName, peopleModalUser.userId)}
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-0.5">FPT University</p>
+                  </div>
+                </div>
+              </div>
+              <div className="px-6 py-4 space-y-3 border-t border-border">
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  Thông tin cá nhân
+                </p>
+                <ul className="space-y-3 text-sm">
+                  <li className="flex gap-3">
+                    <Hash className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-xs text-muted-foreground">Mã số sinh viên</p>
+                      <p className="font-medium text-foreground">
+                        {peopleModalUser.studentId?.trim() || "—"}
+                      </p>
+                    </div>
+                  </li>
+                  <li className="flex gap-3">
+                    <GraduationCap className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-xs text-muted-foreground">Lớp học</p>
+                      <p className="font-medium text-foreground">
+                        {peopleModalUser.class?.trim() || "—"}
+                      </p>
+                    </div>
+                  </li>
+                  <li className="flex gap-3">
+                    <Layers className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-xs text-muted-foreground">Ngành học</p>
+                      <p className="font-medium text-foreground">
+                        {peopleModalUser.major?.trim() || "—"}
+                      </p>
+                    </div>
+                  </li>
+                </ul>
+              </div>
+              <DialogFooter className="px-6 py-4 border-t border-border bg-secondary/30 sm:justify-center gap-2">
+                {sentRequests.has(peopleModalUser.userId) ? (
+                  <p className="text-xs text-muted-foreground flex items-center justify-center gap-1.5 w-full py-2">
+                    <Clock className="h-3.5 w-3.5" /> Đã gửi lời mời kết bạn
+                  </p>
+                ) : (
+                  <Button
+                    className="w-full sm:w-auto gap-1.5"
+                    onClick={() => {
+                      handleAddFriend(peopleModalUser.userId)
+                      setPeopleModalUser(null)
+                    }}
+                  >
+                    <UserPlus className="h-4 w-4" /> Gửi lời mời kết bạn
+                  </Button>
+                )}
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* ══ FRIENDS ══ */}
       {tab === "friends" && (
         <div className="space-y-4 animate-slide-up">
-          {/* Pending requests */}
+          {/* Pending */}
           {pendingRequests.length > 0 && (
             <div className="rounded-2xl border border-primary/25 bg-primary/5 p-4 space-y-3">
               <h3 className="text-sm font-semibold text-primary flex items-center gap-2">
@@ -355,7 +505,6 @@ export default function CommunityPage() {
             </div>
           )}
 
-          {/* Friends list */}
           {friendsLoading ? (
             <div className="flex justify-center py-16"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
           ) : friends.length === 0 ? (
@@ -364,60 +513,57 @@ export default function CommunityPage() {
                 <UserCheck className="h-6 w-6 text-muted-foreground/50" />
               </div>
               <p className="text-sm font-medium text-foreground">Chưa có bạn bè</p>
-              <p className="text-xs text-muted-foreground">Vào tab &ldquo;Mọi người&rdquo; để gửi lời mời kết bạn.</p>
+              <p className="text-xs text-muted-foreground">Vào tab &ldquo;Mọi người&rdquo; để gửi lời mời.</p>
             </div>
           ) : (
             <div className="space-y-2.5">
-              {friends.map((friend) => (
-                <div key={friend.userId}
-                  className="group flex items-center gap-3 rounded-2xl border border-border bg-card p-4 hover:border-primary/30 hover:bg-primary/3 transition-all duration-200"
-                >
-                  <UserAvatar name={friend.displayName} size="lg" />
-                  <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-sm text-foreground truncate">{friend.displayName}</p>
-                    <p className="text-xs text-muted-foreground flex items-center gap-1">
-                      <UserCheck className="h-2.5 w-2.5 text-green-400" /> Bạn bè
-                    </p>
+              {friends.map((friend) => {
+                const name = displayLabel(friend.displayName, friend.userId)
+                return (
+                  <div key={friend.userId}
+                    className="group flex items-center gap-3 rounded-2xl border border-border bg-card p-4 hover:border-primary/30 transition-all duration-200"
+                  >
+                    <UserAvatar name={name} avatar={friend.avatar} size="lg" />
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-sm text-foreground truncate">{name}</p>
+                      <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+                        <UserCheck className="h-2.5 w-2.5 text-green-400" /> Bạn bè
+                      </p>
+                    </div>
+                    <Button size="sm" variant="outline" onClick={() => openChat(friend)}
+                      className="gap-1.5 border-primary/30 text-primary hover:bg-primary hover:text-primary-foreground hover:scale-105 active:scale-95 transition-all">
+                      <MessageSquare className="h-3.5 w-3.5" /> Nhắn tin
+                    </Button>
                   </div>
-                  <Button size="sm" variant="outline" onClick={() => openChat(friend)}
-                    className="gap-1.5 border-primary/30 text-primary hover:bg-primary hover:text-primary-foreground hover:scale-105 active:scale-95 transition-all">
-                    <MessageCircleMore className="h-3.5 w-3.5" /> Nhắn tin
-                  </Button>
-                </div>
-              ))}
+                )
+              })}
             </div>
           )}
         </div>
       )}
 
-      {/* ══════════ CHAT PANEL ══════════ */}
+      {/* ══ CHAT PANEL ══ */}
       {activeChat && (
-        <div className={cn(
-          "fixed z-50 right-4 w-full max-w-sm bottom-[80px] lg:bottom-4 animate-slide-up"
-        )}>
+        <div className="fixed z-50 right-4 w-full max-w-sm bottom-[80px] lg:bottom-4 animate-slide-up">
           <div
             className="flex flex-col rounded-2xl border border-border bg-card shadow-2xl shadow-black/30 overflow-hidden"
             style={{ height: "min(70vh, calc(100dvh - 160px))" }}
           >
-            {/* Header */}
             <div className="flex items-center gap-3 border-b border-border px-4 py-3 bg-secondary/50">
               <button onClick={closeChat} className="text-muted-foreground hover:text-foreground hover:scale-110 transition-all rounded-lg p-1">
                 <ChevronLeft className="h-4 w-4" />
               </button>
-              <UserAvatar name={activeChat.displayName} size="sm" />
+              <UserAvatar name={displayLabel(activeChat.displayName, activeChat.userId)} avatar={activeChat.avatar} size="sm" />
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold truncate">{activeChat.displayName}</p>
+                <p className="text-sm font-semibold truncate">{displayLabel(activeChat.displayName, activeChat.userId)}</p>
                 <p className="text-[10px] text-muted-foreground flex items-center gap-1">
-                  <span className="h-1.5 w-1.5 rounded-full bg-green-400 inline-block" />
-                  Cập nhật mỗi 5 giây
+                  <span className="h-1.5 w-1.5 rounded-full bg-green-400 inline-block" /> Cập nhật mỗi 5 giây
                 </p>
               </div>
               <button onClick={closeChat} className="text-muted-foreground hover:text-destructive hover:scale-110 transition-all rounded-lg p-1">
                 <X className="h-4 w-4" />
               </button>
             </div>
-
-            {/* Messages */}
             <div className="flex-1 overflow-y-auto p-3 space-y-2">
               {messages.length === 0 && (
                 <div className="flex flex-col items-center gap-2 py-8 text-center">
@@ -427,7 +573,7 @@ export default function CommunityPage() {
               )}
               {messages.map((msg) => (
                 <div key={msg._id} className={cn(
-                  "max-w-[80%] rounded-2xl px-3 py-2 text-sm transition-all",
+                  "max-w-[80%] rounded-2xl px-3 py-2 text-sm",
                   msg.fromUserId === myId
                     ? "ml-auto bg-primary text-primary-foreground rounded-br-sm"
                     : "mr-auto bg-secondary text-foreground rounded-bl-sm"
@@ -437,8 +583,6 @@ export default function CommunityPage() {
               ))}
               <div ref={chatEndRef} />
             </div>
-
-            {/* Input */}
             <div className="border-t border-border p-3 flex gap-2 bg-secondary/30">
               <Input
                 placeholder="Nhắn tin..."
@@ -447,12 +591,8 @@ export default function CommunityPage() {
                 onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && handleSendMsg()}
                 className="flex-1 bg-card border-border text-sm focus:border-primary/40"
               />
-              <Button
-                size="sm"
-                onClick={handleSendMsg}
-                disabled={!chatInput.trim() || chatSending}
-                className="hover:scale-105 active:scale-95 transition-transform"
-              >
+              <Button size="sm" onClick={handleSendMsg} disabled={!chatInput.trim() || chatSending}
+                className="hover:scale-105 active:scale-95 transition-transform">
                 {chatSending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
               </Button>
             </div>
@@ -471,15 +611,15 @@ function PostCard({ post, myId, commentInput, showComments, onLike, onToggleComm
 }) {
   const liked   = post.likes.includes(myId)
   const isOwner = post.userId === myId
+  const name    = displayLabel(post.displayName, post.userId)
 
   return (
     <div className="group rounded-2xl border border-border bg-card p-4 space-y-3 hover:border-primary/20 hover:shadow-md hover:shadow-primary/5 transition-all duration-200 animate-fade-in">
-      {/* Header */}
       <div className="flex items-start justify-between gap-2">
         <div className="flex items-center gap-2.5">
-          <UserAvatar name={post.displayName} />
+          <UserAvatar name={name} />
           <div>
-            <p className="text-sm font-semibold text-foreground">{post.displayName}</p>
+            <p className="text-sm font-semibold text-foreground">{name}</p>
             <p className="text-[11px] text-muted-foreground">
               {new Date(post.createdAt).toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })}
             </p>
@@ -493,10 +633,8 @@ function PostCard({ post, myId, commentInput, showComments, onLike, onToggleComm
         )}
       </div>
 
-      {/* Content */}
       <p className="text-sm text-foreground leading-relaxed whitespace-pre-wrap">{post.content}</p>
 
-      {/* Actions */}
       <div className="flex items-center gap-1 pt-1 border-t border-border/50">
         <button onClick={onLike} className={cn(
           "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-all hover:scale-105 active:scale-95",
@@ -514,20 +652,18 @@ function PostCard({ post, myId, commentInput, showComments, onLike, onToggleComm
         </button>
       </div>
 
-      {/* Comments */}
       {showComments && (
         <div className="space-y-2 pt-1 animate-slide-up">
           {post.comments.map((c, i) => (
             <div key={i} className="flex gap-2.5">
-              <UserAvatar name={c.displayName} size="sm" />
+              <UserAvatar name={displayLabel(c.displayName, c.userId)} size="sm" />
               <div className="flex-1 rounded-xl bg-secondary/60 px-3 py-2">
-                <p className="text-[11px] font-semibold text-foreground">{c.displayName}</p>
+                <p className="text-[11px] font-semibold text-foreground">{displayLabel(c.displayName, c.userId)}</p>
                 <p className="text-xs text-foreground/80 mt-0.5">{c.content}</p>
               </div>
             </div>
           ))}
           <div className="flex gap-2 pt-1">
-            <UserAvatar name={myId.slice(-4)} size="sm" />
             <div className="flex flex-1 gap-2">
               <Input
                 placeholder="Viết bình luận..."

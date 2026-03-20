@@ -16,7 +16,7 @@
 
 import { Suspense, useEffect } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
-import { setAuthStorage, getUserInfo } from "@/lib/api"
+import { setAuthStorage, getUserInfo, setSessionUserDisplay } from "@/lib/api"
 
 function CallbackHandler() {
   const router = useRouter()
@@ -36,6 +36,10 @@ function CallbackHandler() {
     // Kiểm tra user đã có phone chưa để quyết định redirect
     getUserInfo()
       .then((info) => {
+        // Navbar hiển thị tên + ảnh Google ngay (trước khi state tải xong)
+        if (info.name?.trim() || info.avatar?.trim()) {
+          setSessionUserDisplay(info.name ?? "", info.avatar ?? "")
+        }
         if (info.isGoogleUser && !info.hasPhone) {
           // Google user lần đầu đăng nhập → yêu cầu điền SDT + mật khẩu
           router.replace("/auth/setup")

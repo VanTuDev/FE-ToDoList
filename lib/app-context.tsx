@@ -21,7 +21,7 @@ import type {
   StudyTask,
 } from "./types";
 import * as api from "./api";
-import { ApiError, clearAuthStorage } from "./api";
+import { ApiError, clearAuthStorage, setSessionUserDisplay } from "./api";
 
 // ============================
 // State ban đầu (rỗng) – dữ liệu thật lấy từ API khi load
@@ -245,6 +245,10 @@ export function AppProvider({ children, onUnauthorized }: AppProviderProps) {
       setLoading(true);
       const data = await api.getState();
       dispatch({ type: "SET_STATE", payload: data });
+      const p = data.profile;
+      if (p?.name?.trim() || p?.avatar?.trim()) {
+        setSessionUserDisplay(p.name ?? "", p.avatar ?? "");
+      }
     } catch (e) {
       if (e instanceof ApiError && e.status === 401) {
         clearAuthStorage();
@@ -272,6 +276,10 @@ export function AppProvider({ children, onUnauthorized }: AppProviderProps) {
         setLoading(true);
         const data = await api.getState(controller.signal);
         dispatch({ type: "SET_STATE", payload: data });
+        const p = data.profile;
+        if (p?.name?.trim() || p?.avatar?.trim()) {
+          setSessionUserDisplay(p.name ?? "", p.avatar ?? "");
+        }
       } catch (e) {
         // Bỏ qua nếu request bị huỷ chủ động (Strict Mode cleanup)
         if (controller.signal.aborted) return;
